@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
+import Button from "./ui/Button";
 
 const Navbar = () => {
   const { pathname } = useLocation();
@@ -19,11 +20,14 @@ const Navbar = () => {
           <NavLink to="/">Home</NavLink>
         </li>
         {userData?.jwt ? (
-          <div>
-            <span> {userData.user.email}</span>{" "}
-            <span className="cursor-pointer" onClick={onLogout}>
+          <div className="flex items-center text-indigo-600 space-x-2">
+            <li className="text-indigo-600 duration-200 text-lg">
+              <NavLink to="/profile">Profile</NavLink>
+            </li>
+            <span className="text-gray-500"> {userData.user.email}</span>{" "}
+            <Button className="cursor-pointer" size={"sm"} onClick={onLogout}>
               Logout
-            </span>
+            </Button>
           </div>
         ) : (
           <p className="flex items-center space-x-3">
