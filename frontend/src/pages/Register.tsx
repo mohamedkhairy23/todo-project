@@ -1,6 +1,10 @@
 import { useForm, SubmitHandler } from "react-hook-form";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
+import InputErrorMessage from "../components/ui/InputErrorMessage";
+import { REGISTER_FORM } from "../data";
+import { yupResolver } from "@hookform/resolvers/yup";
+import { registerSchema } from "../validation";
 
 interface IFormInput {
   username: string;
@@ -11,12 +15,28 @@ interface IFormInput {
 const RegisterPage = () => {
   const {
     register,
-    formState: { errors },
     handleSubmit,
-  } = useForm<IFormInput>();
-  const onSubmit: SubmitHandler<IFormInput> = (data) => console.log(data);
+    formState: { errors },
+  } = useForm<IFormInput>({
+    resolver: yupResolver(registerSchema),
+  });
 
-  console.log(errors);
+  const onSubmit: SubmitHandler<IFormInput> = (data) => {
+    console.log(data);
+  };
+
+  const renderRegisterForm = REGISTER_FORM.map(
+    ({ name, placeholder, type, validation }, index) => (
+      <div key={index}>
+        <Input
+          placeholder={placeholder}
+          type={type}
+          {...register(name, validation)}
+        />
+        {errors[name] && <InputErrorMessage msg={errors[name]?.message} />}
+      </div>
+    )
+  );
 
   return (
     <div className="max-w-md mx-auto">
@@ -24,19 +44,7 @@ const RegisterPage = () => {
         Register to get access!
       </h2>
       <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
-        <Input
-          placeholder="Username"
-          {...register("username", { required: "Username is required" })}
-        />
-        <p className="text-red-600">{errors?.username?.message}</p>
-        <Input
-          {...register("email", { required: "Email is required" })}
-          placeholder="Email address"
-        />
-        <Input
-          {...register("password", { required: "Password is required" })}
-          placeholder="Password"
-        />
+        {renderRegisterForm}
         <Button fullWidth>Register</Button>
       </form>
     </div>
