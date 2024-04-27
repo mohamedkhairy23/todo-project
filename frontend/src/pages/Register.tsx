@@ -35,16 +35,16 @@ const RegisterPage = () => {
       const { status } = await axiosInstance.post("/auth/local/register", data);
       if (status === 200) {
         toast.success(
-          "You will navigate to login page after 3 seconds to login!",
+          "You will navigate to login page after 2 seconds to login!",
           {
             position: "bottom-center",
-            duration: 3000,
+            duration: 2000,
           }
         );
 
         setTimeout(() => {
           navigate("/login");
-        }, 3000);
+        }, 2000);
       }
     } catch (error) {
       const errorObj = error as AxiosError<IErrorResponse>;

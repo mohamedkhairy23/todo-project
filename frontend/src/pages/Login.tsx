@@ -5,7 +5,6 @@ import InputErrorMessage from "../components/ui/InputErrorMessage";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { loginSchema } from "../validation";
 import { LOGIN_FORM } from "../data";
-import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import axiosInstance from "../config/axios.config";
 import toast from "react-hot-toast";
@@ -19,7 +18,6 @@ interface IFormInput {
 
 const LoginPage = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -31,16 +29,23 @@ const LoginPage = () => {
   const onSubmit: SubmitHandler<IFormInput> = async (data) => {
     setIsLoading(true);
     try {
-      const { status } = await axiosInstance.post("/auth/local", data);
+      const { status, data: resData } = await axiosInstance.post(
+        "/auth/local",
+        data
+      );
+      // console.log(resData);
+
       if (status === 200) {
-        toast.success("You will navigate to login page after 3 seconds!", {
+        toast.success("You will navigate to login page after 2 seconds!", {
           position: "bottom-center",
-          duration: 3000,
+          duration: 2000,
         });
 
+        localStorage.setItem("loggedInUser", JSON.stringify(resData));
+
         setTimeout(() => {
-          navigate("/");
-        }, 3000);
+          location.replace("/");
+        }, 2000);
       }
     } catch (error) {
       const errorObj = error as AxiosError<IErrorResponse>;
