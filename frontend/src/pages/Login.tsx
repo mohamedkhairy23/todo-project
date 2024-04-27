@@ -5,13 +5,21 @@ import InputErrorMessage from "../components/ui/InputErrorMessage";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { loginSchema } from "../validation";
 import { LOGIN_FORM } from "../data";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import axiosInstance from "../config/axios.config";
+import toast from "react-hot-toast";
+import { AxiosError } from "axios";
+import { IErrorResponse } from "../interfaces";
 
 interface IFormInput {
-  email: string;
+  identifier: string;
   password: string;
 }
 
 const LoginPage = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -20,8 +28,35 @@ const LoginPage = () => {
     resolver: yupResolver(loginSchema),
   });
 
-  const onSubmit: SubmitHandler<IFormInput> = (data) => {
-    console.log(data);
+  const onSubmit: SubmitHandler<IFormInput> = async (data) => {
+    setIsLoading(true);
+    try {
+      const { status } = await axiosInstance.post("/auth/local", data);
+      if (status === 200) {
+        toast.success("You will navigate to login page after 3 seconds!", {
+          position: "bottom-center",
+          duration: 3000,
+        });
+
+        setTimeout(() => {
+          navigate("/");
+        }, 3000);
+      }
+    } catch (error) {
+      const errorObj = error as AxiosError<IErrorResponse>;
+      toast.error(`${errorObj.response?.data.error.message}`, {
+        position: "bottom-center",
+        duration: 4000,
+        style: {
+          backgroundColor: "black",
+          color: "white",
+          width: "fit-content",
+        },
+      });
+      console.log(errorObj.response?.data.error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const renderLoginForm = LOGIN_FORM.map(
@@ -44,7 +79,9 @@ const LoginPage = () => {
       <form className="space-y-4" onSubmit={handleSubmit(onSubmit)}>
         {renderLoginForm}
 
-        <Button fullWidth>Login</Button>
+        <Button fullWidth isLoading={isLoading}>
+          {isLoading ? "Loading..." : "Login"}
+        </Button>
       </form>
     </div>
   );

@@ -19,7 +19,7 @@ export const registerSchema = yup
 
 export const loginSchema = yup
   .object({
-    email: yup
+    identifier: yup
       .string()
       .required("Email is required")
       .matches(/^[^@ ]+@[^@ ]+\.[^@ .]{2,}$/, "Not valid email address."),
