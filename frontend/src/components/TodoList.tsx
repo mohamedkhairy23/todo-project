@@ -20,6 +20,7 @@ const TodoList = () => {
     register,
     handleSubmit,
     formState: { errors },
+    resetField: resetField1,
   } = useForm<ITodo>();
 
   const {
@@ -27,7 +28,9 @@ const TodoList = () => {
     formState: { errors: errors2 },
     handleSubmit: handleSubmit2,
     resetField: resetField2,
-  } = useForm();
+  } = useForm({
+    mode: "onChange",
+  });
 
   const [queryVersion, setQueryVersion] = useState(1);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -55,95 +58,6 @@ const TodoList = () => {
     },
   });
 
-  //////////////////////////////////////////////////////////////////////////////////////////
-  const onCloseEditModal = () => {
-    setTodoToEdit({
-      id: 0,
-      title: "",
-      description: "",
-    });
-    setIsEditModalOpen(false);
-  };
-
-  const onOpenEditModal = (todo: ITodo) => {
-    setTodoToEdit(todo);
-    setIsEditModalOpen(true);
-  };
-
-  const onChangeEditHandler = (
-    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { value, name } = event.target;
-    setTodoToEdit({
-      ...todoToEdit,
-      [name]: value,
-    });
-  };
-
-  const submitEditHandler: SubmitHandler<ITodo> = async () => {
-    setIsUpdating(true);
-    const { title, description } = todoToEdit;
-    try {
-      const { status } = await axiosInstance.put(
-        `/todos/${todoToEdit.id}`,
-        { data: { title: title, description: description } },
-        {
-          headers: {
-            Authorization: `Bearer ${userData?.jwt}`,
-          },
-        }
-      );
-      if (status === 200) {
-        setQueryVersion((prev) => prev + 1);
-        onCloseEditModal();
-        toast.success("Todo updated successfuly!", {
-          position: "bottom-center",
-          duration: 2000,
-        });
-      }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  ///////////////////////////////////////////////////////////////////////////////////////////
-  const closeConfirmModal = () => {
-    setTodoToEdit({
-      id: 0,
-      title: "",
-      description: "",
-    });
-    setIsOpenConfirmModal(false);
-  };
-  const openConfirmModal = (todo: ITodo) => {
-    setTodoToEdit(todo);
-    setIsOpenConfirmModal(true);
-  };
-
-  const onRemove = async () => {
-    try {
-      const { status } = await axiosInstance.delete(`/todos/${todoToEdit.id}`, {
-        headers: {
-          Authorization: `Bearer ${userData?.jwt}`,
-        },
-      });
-
-      if (status === 200) {
-        setQueryVersion((prev) => prev + 1);
-        closeConfirmModal();
-        toast.success("Todo deleted successfuly!", {
-          position: "bottom-center",
-          duration: 2000,
-        });
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   const onCloseAddModal = () => {
     setTodoToAdd({
       title2: "",
@@ -168,6 +82,94 @@ const TodoList = () => {
       ...todoToAdd,
       [name]: value,
     });
+  };
+
+  const onCloseEditModal = () => {
+    setTodoToEdit({
+      id: 0,
+      title: "",
+      description: "",
+    });
+    setIsEditModalOpen(false);
+  };
+
+  const onOpenEditModal = (todo: ITodo) => {
+    setTodoToEdit(todo);
+    setIsEditModalOpen(true);
+  };
+
+  const onChangeEditHandler = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { value, name } = event.target;
+    setTodoToEdit({
+      ...todoToEdit,
+      [name]: value,
+    });
+  };
+
+  const closeConfirmModal = () => {
+    setTodoToEdit({
+      id: 0,
+      title: "",
+      description: "",
+    });
+    setIsOpenConfirmModal(false);
+  };
+  const openConfirmModal = (todo: ITodo) => {
+    setTodoToEdit(todo);
+    setIsOpenConfirmModal(true);
+  };
+
+  const submitEditHandler: SubmitHandler<ITodo> = async () => {
+    setIsUpdating(true);
+    const { title, description } = todoToEdit;
+    try {
+      const { status } = await axiosInstance.put(
+        `/todos/${todoToEdit.id}`,
+        { data: { title: title, description: description } },
+        {
+          headers: {
+            Authorization: `Bearer ${userData?.jwt}`,
+          },
+        }
+      );
+      if (status === 200) {
+        setQueryVersion((prev) => prev + 1);
+        onCloseEditModal();
+        resetField1("title");
+        resetField1("description");
+        toast.success("Todo updated successfuly!", {
+          position: "bottom-center",
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const onRemove = async () => {
+    try {
+      const { status } = await axiosInstance.delete(`/todos/${todoToEdit.id}`, {
+        headers: {
+          Authorization: `Bearer ${userData?.jwt}`,
+        },
+      });
+
+      if (status === 200) {
+        setQueryVersion((prev) => prev + 1);
+        closeConfirmModal();
+        toast.success("Todo deleted successfuly!", {
+          position: "bottom-center",
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const submitAddHandler = async () => {
@@ -232,7 +234,7 @@ const TodoList = () => {
           Generate todos
         </Button> */}
       </div>
-      {data.todos.length ? (
+      {data?.todos?.length ? (
         data.todos.map((todo: ITodo) => (
           <div
             key={todo.id}
@@ -243,7 +245,11 @@ const TodoList = () => {
             </p>
             <div className="flex items-center justify-end w-full space-x-3">
               <Button
-                onClick={() => onOpenEditModal(todo)}
+                onClick={() => {
+                  onOpenEditModal(todo);
+                  resetField1("title");
+                  resetField1("description");
+                }}
                 variant="default"
                 size="sm"
               >
