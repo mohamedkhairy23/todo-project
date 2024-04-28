@@ -26,6 +26,7 @@ const TodoList = () => {
     register: register2,
     formState: { errors: errors2 },
     handleSubmit: handleSubmit2,
+    resetField: resetField2,
   } = useForm();
 
   const [queryVersion, setQueryVersion] = useState(1);
@@ -192,6 +193,8 @@ const TodoList = () => {
       if (status === 200) {
         setQueryVersion((prev) => prev + 1);
         onCloseAddModal();
+        resetField2("title2");
+        resetField2("description2");
 
         toast.success("Todo added successfuly!", {
           position: "bottom-center",
