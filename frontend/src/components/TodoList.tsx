@@ -8,6 +8,8 @@ import { SubmitHandler, useForm } from "react-hook-form";
 import { ITodo } from "../interfaces";
 import InputErrorMessage from "./ui/InputErrorMessage";
 import axiosInstance from "../config/axios.config";
+import toast from "react-hot-toast";
+import TodoSkeleton from "./TodoSkeleton";
 
 const TodoList = () => {
   const storageKey = "loggedInUser";
@@ -29,6 +31,7 @@ const TodoList = () => {
     description: "",
   });
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isOpenConfirmModal, setIsOpenConfirmModal] = useState(false);
 
   const { isLoading, data } = useAuthenticatedQuery({
     queryKey: ["todoList", `${todoToEdit.id}`],
@@ -53,6 +56,19 @@ const TodoList = () => {
     setIsEditModalOpen(true);
   };
 
+  const closeConfirmModal = () => {
+    setTodoToEdit({
+      id: 0,
+      title: "",
+      description: "",
+    });
+    setIsOpenConfirmModal(false);
+  };
+  const openConfirmModal = (todo: ITodo) => {
+    setTodoToEdit(todo);
+    setIsOpenConfirmModal(true);
+  };
+
   const onChangeHandler = (
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -61,6 +77,26 @@ const TodoList = () => {
       ...todoToEdit,
       [name]: value,
     });
+  };
+
+  const onRemove = async () => {
+    try {
+      const { status } = await axiosInstance.delete(`/todos/${todoToEdit.id}`, {
+        headers: {
+          Authorization: `Bearer ${userData?.jwt}`,
+        },
+      });
+
+      if (status === 200) {
+        closeConfirmModal();
+        toast.success("Todo deleted successfuly!", {
+          position: "bottom-center",
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const submitHandler: SubmitHandler<ITodo> = async () => {
@@ -78,6 +114,10 @@ const TodoList = () => {
       );
       if (status === 200) {
         onCloseEditModal();
+        toast.success("Todo updated successfuly!", {
+          position: "bottom-center",
+          duration: 2000,
+        });
       }
     } catch (error) {
       console.log(error);
@@ -86,7 +126,14 @@ const TodoList = () => {
     }
   };
 
-  if (isLoading) return <h3>Loading...</h3>;
+  if (isLoading)
+    return (
+      <div className="space-y-1 p-3">
+        {Array.from({ length: 10 }, () => (
+          <TodoSkeleton />
+        ))}
+      </div>
+    );
 
   return (
     <div className="space-y-1 ">
@@ -98,7 +145,6 @@ const TodoList = () => {
           Generate todos
         </Button>
       </div>
-
       {data.todos.length ? (
         data.todos.map((todo: ITodo) => (
           <div
@@ -116,7 +162,11 @@ const TodoList = () => {
               >
                 Edit
               </Button>
-              <Button variant="danger" size="sm">
+              <Button
+                onClick={() => openConfirmModal(todo)}
+                variant="danger"
+                size="sm"
+              >
                 Remove
               </Button>
             </div>
@@ -174,6 +224,22 @@ const TodoList = () => {
           </div>
         </form>
       </Modal>
+      {/* Delete todo confirm modal */}
+      <Modal
+        isOpen={isOpenConfirmModal}
+        closeModal={closeConfirmModal}
+        title="Are you sure you want to remove this todo from your store ?"
+        description="Deleting this todo will remove it permenantly from your inventory. Any associated data, sales history, and other related information will also be deleted. Please make sure this is the intended action."
+      >
+        <div className="flex items-center space-x-3 mt-4">
+          <Button variant="danger" onClick={onRemove}>
+            Yes , Remove
+          </Button>
+          <Button variant="cancel" type="button" onClick={closeConfirmModal}>
+            Cancel
+          </Button>
+        </div>
+      </Modal>{" "}
     </div>
   );
 };
