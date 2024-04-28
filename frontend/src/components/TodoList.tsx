@@ -1,5 +1,4 @@
 import Button from "./ui/Button";
-import useAuthenticatedQuery from "../hooks/useAuthenticatedQuery";
 import Modal from "./ui/Modal";
 import Input from "./ui/Input";
 import { ChangeEvent, useState } from "react";
@@ -10,6 +9,7 @@ import InputErrorMessage from "./ui/InputErrorMessage";
 import axiosInstance from "../config/axios.config";
 import toast from "react-hot-toast";
 import TodoSkeleton from "./TodoSkeleton";
+import useCustomQuery from "../hooks/useCustomQuery.ts";
 
 const TodoList = () => {
   const storageKey = "loggedInUser";
@@ -20,21 +20,32 @@ const TodoList = () => {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ITodo>({
-    mode: "onChange",
-  });
+  } = useForm<ITodo>();
 
+  const {
+    register: register2,
+    formState: { errors: errors2 },
+    handleSubmit: handleSubmit2,
+  } = useForm();
+
+  const [queryVersion, setQueryVersion] = useState(1);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [todoToEdit, setTodoToEdit] = useState<ITodo>({
     id: 0,
     title: "",
     description: "",
   });
+  const [todoToAdd, setTodoToAdd] = useState({
+    title2: "",
+    description2: "",
+  });
   const [isUpdating, setIsUpdating] = useState(false);
   const [isOpenConfirmModal, setIsOpenConfirmModal] = useState(false);
+  const [isOpenAddModal, setIsOpenAddModal] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
 
-  const { isLoading, data } = useAuthenticatedQuery({
-    queryKey: ["todoList", `${todoToEdit.id}`],
+  const { isLoading, data } = useCustomQuery({
+    queryKey: ["todoList", `${queryVersion}`],
     url: "/users/me?populate=todos",
     config: {
       headers: {
@@ -43,6 +54,7 @@ const TodoList = () => {
     },
   });
 
+  //////////////////////////////////////////////////////////////////////////////////////////
   const onCloseEditModal = () => {
     setTodoToEdit({
       id: 0,
@@ -51,25 +63,13 @@ const TodoList = () => {
     });
     setIsEditModalOpen(false);
   };
+
   const onOpenEditModal = (todo: ITodo) => {
     setTodoToEdit(todo);
     setIsEditModalOpen(true);
   };
 
-  const closeConfirmModal = () => {
-    setTodoToEdit({
-      id: 0,
-      title: "",
-      description: "",
-    });
-    setIsOpenConfirmModal(false);
-  };
-  const openConfirmModal = (todo: ITodo) => {
-    setTodoToEdit(todo);
-    setIsOpenConfirmModal(true);
-  };
-
-  const onChangeHandler = (
+  const onChangeEditHandler = (
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { value, name } = event.target;
@@ -79,27 +79,7 @@ const TodoList = () => {
     });
   };
 
-  const onRemove = async () => {
-    try {
-      const { status } = await axiosInstance.delete(`/todos/${todoToEdit.id}`, {
-        headers: {
-          Authorization: `Bearer ${userData?.jwt}`,
-        },
-      });
-
-      if (status === 200) {
-        closeConfirmModal();
-        toast.success("Todo deleted successfuly!", {
-          position: "bottom-center",
-          duration: 2000,
-        });
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const submitHandler: SubmitHandler<ITodo> = async () => {
+  const submitEditHandler: SubmitHandler<ITodo> = async () => {
     setIsUpdating(true);
     const { title, description } = todoToEdit;
     try {
@@ -113,6 +93,7 @@ const TodoList = () => {
         }
       );
       if (status === 200) {
+        setQueryVersion((prev) => prev + 1);
         onCloseEditModal();
         toast.success("Todo updated successfuly!", {
           position: "bottom-center",
@@ -123,6 +104,104 @@ const TodoList = () => {
       console.log(error);
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  ///////////////////////////////////////////////////////////////////////////////////////////
+  const closeConfirmModal = () => {
+    setTodoToEdit({
+      id: 0,
+      title: "",
+      description: "",
+    });
+    setIsOpenConfirmModal(false);
+  };
+  const openConfirmModal = (todo: ITodo) => {
+    setTodoToEdit(todo);
+    setIsOpenConfirmModal(true);
+  };
+
+  const onRemove = async () => {
+    try {
+      const { status } = await axiosInstance.delete(`/todos/${todoToEdit.id}`, {
+        headers: {
+          Authorization: `Bearer ${userData?.jwt}`,
+        },
+      });
+
+      if (status === 200) {
+        setQueryVersion((prev) => prev + 1);
+        closeConfirmModal();
+        toast.success("Todo deleted successfuly!", {
+          position: "bottom-center",
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  const onCloseAddModal = () => {
+    setTodoToAdd({
+      title2: "",
+      description2: "",
+    });
+    setIsOpenAddModal(false);
+  };
+
+  const onOpenAddModal = () => {
+    setTodoToAdd({
+      title2: "",
+      description2: "",
+    });
+    setIsOpenAddModal(true);
+  };
+
+  const onChangeAddHandler = (
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { value, name } = event.target;
+    setTodoToAdd({
+      ...todoToAdd,
+      [name]: value,
+    });
+  };
+
+  const submitAddHandler = async () => {
+    setIsAdding(true);
+    const { title2, description2 } = todoToAdd;
+    try {
+      const { status } = await axiosInstance.post(
+        `/todos`,
+        {
+          data: {
+            title: title2,
+            description: description2,
+            user: [userData.user.id],
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${userData?.jwt}`,
+          },
+        }
+      );
+
+      if (status === 200) {
+        setQueryVersion((prev) => prev + 1);
+        onCloseAddModal();
+
+        toast.success("Todo added successfuly!", {
+          position: "bottom-center",
+          duration: 2000,
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -138,12 +217,17 @@ const TodoList = () => {
   return (
     <div className="space-y-1 ">
       <div className="flex w-fit mx-auto my-10 gap-x-2">
-        <Button variant="default" size="sm">
+        <Button
+          onClick={onOpenAddModal}
+          type="button"
+          variant="default"
+          size="sm"
+        >
           Post new todo
         </Button>
-        <Button variant="outline" size="sm">
+        {/* <Button variant="outline" size="sm">
           Generate todos
-        </Button>
+        </Button> */}
       </div>
       {data.todos.length ? (
         data.todos.map((todo: ITodo) => (
@@ -175,13 +259,70 @@ const TodoList = () => {
       ) : (
         <h3>No todos yet!</h3>
       )}
+      {/* Add todo modal */}
+      <Modal
+        isOpen={isOpenAddModal}
+        closeModal={onCloseAddModal}
+        title="Add a new todo"
+      >
+        <form
+          key={1}
+          className="space-y-3"
+          onSubmit={handleSubmit2(submitAddHandler)}
+        >
+          <Input
+            // value={todoToAdd.title2}
+            {...register2("title2", {
+              required: true,
+              minLength: 3,
+              maxLength: 20,
+              onChange: (e) => {
+                onChangeAddHandler(e);
+              },
+            })}
+          />
+          {errors2.title2?.type === "required" && (
+            <InputErrorMessage msg="Todo title is required" />
+          )}
+          {errors2.title2?.type === "minLength" && (
+            <InputErrorMessage msg="Todo title should be at least 3 characters" />
+          )}
+          {errors2.title2?.type === "maxLength" && (
+            <InputErrorMessage msg="Todo description should be less than 20 characters" />
+          )}
+          <Textarea
+            // value={todoToAdd.description2}
+            {...register2("description2", {
+              minLength: 20,
+              onChange: (e) => {
+                onChangeAddHandler(e);
+              },
+            })}
+          />
+          {errors2.description2?.type === "minLength" && (
+            <InputErrorMessage msg="Todo description should be at least 20 characters" />
+          )}
+          <div className="flex items-center space-x-3 mt-4">
+            <Button isLoading={isAdding}>
+              {isAdding ? "Loading..." : "Add"}
+            </Button>{" "}
+            <Button variant={"cancel"} type="button" onClick={onCloseAddModal}>
+              Cancel
+            </Button>
+          </div>
+        </form>
+      </Modal>
       {/* Edit todo modal */}
       <Modal
         isOpen={isEditModalOpen}
         closeModal={onCloseEditModal}
         title="Edit Todo"
       >
-        <form className="space-y-3" onSubmit={handleSubmit(submitHandler)}>
+        <form
+          key={2}
+          className="space-y-3"
+          onSubmit={handleSubmit(submitEditHandler)}
+        >
           <Input
             value={todoToEdit.title}
             {...register("title", {
@@ -189,7 +330,7 @@ const TodoList = () => {
               minLength: 3,
               maxLength: 20,
               onChange: (e) => {
-                onChangeHandler(e);
+                onChangeEditHandler(e);
               },
             })}
           />
@@ -207,7 +348,7 @@ const TodoList = () => {
             {...register("description", {
               minLength: 20,
               onChange: (e) => {
-                onChangeHandler(e);
+                onChangeEditHandler(e);
               },
             })}
           />
@@ -216,9 +357,9 @@ const TodoList = () => {
           )}
           <div className="flex items-center space-x-3 mt-4">
             <Button isLoading={isUpdating}>
-              {isLoading ? "Loading..." : "Update"}
+              {isUpdating ? "Loading..." : "Update"}
             </Button>{" "}
-            <Button variant={"cancel"} onClick={onCloseEditModal}>
+            <Button variant={"cancel"} type="button" onClick={onCloseEditModal}>
               Cancel
             </Button>
           </div>
@@ -239,7 +380,7 @@ const TodoList = () => {
             Cancel
           </Button>
         </div>
-      </Modal>{" "}
+      </Modal>
     </div>
   );
 };
