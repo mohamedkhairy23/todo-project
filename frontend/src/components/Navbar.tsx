@@ -22,9 +22,12 @@ const Navbar = () => {
         {userData?.jwt ? (
           <div className="flex items-center text-indigo-600 space-x-2">
             <li className="text-indigo-600 duration-200 text-lg">
+              <NavLink to="/todos">Todos</NavLink>
+            </li>
+            <li className="text-indigo-600 duration-200 text-lg">
               <NavLink to="/profile">Profile</NavLink>
             </li>
-            <span className="text-gray-500"> {userData.user.email}</span>{" "}
+            {/* <span className="text-gray-500"> {userData.user.email}</span>{" "} */}
             <Button className="cursor-pointer" size={"sm"} onClick={onLogout}>
               Logout
             </Button>
